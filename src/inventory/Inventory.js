@@ -15,7 +15,7 @@ const Inventory = () => {
     <>
       <h1>Papa John Inventory</h1>
       <CRow>
-        <CCol xs={12}>
+        <CCol xs={6}>
           <CCard className="mb-4">
             <CCardBody>
               <CChartDoughnut
@@ -34,13 +34,31 @@ const Inventory = () => {
             </CCardBody>
           </CCard>
         </CCol>
+        <CCol xs={6}>
+          <CCard className="mb-4">
+            <CCardBody>
+              <CAlert color="danger" dismissible>
+                <strong>Significantly low!</strong> Potato
+              </CAlert>
+              <CAlert color="warning" dismissible>
+                <strong>Low!</strong> Tomato
+              </CAlert>
+              <CAlert color="warning" dismissible>
+                <strong>Low!</strong> Tomato
+              </CAlert>
+              <CAlert color="warning" dismissible>
+                <strong>Low!</strong> Tomato
+              </CAlert>
+              <CAlert color="warning" dismissible>
+                <strong>Low!</strong> Tomato
+              </CAlert>
+              <CAlert color="warning" dismissible>
+                <strong>Low!</strong> Tomato
+              </CAlert>
+            </CCardBody>
+          </CCard>
+        </CCol>
       </CRow>
-      <CAlert color="danger" dismissible>
-        <strong>Significantly low!</strong> Potato
-      </CAlert>
-      <CAlert color="warning" dismissible>
-        <strong>Low!</strong> Tomato
-      </CAlert>
     </>
   )
 }
