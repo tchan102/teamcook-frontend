@@ -8,6 +8,7 @@ import {
   CDropdownToggle,
   CDropdownMenu,
   CDropdownItem,
+  CAlert,
 } from '@coreui/react'
 
 import api from '../api'
@@ -19,7 +20,7 @@ const Testing = () => {
   const [selectedIngredient, setSelectedIngredient] = useState(null)
   const [amount, setAmount] = useState('')
   const [unit, setUnit] = useState('')
-  const [message, setMessage] = useState('')
+  const [cost, setCost] = useState('')
 
   // Action 2: Execute Processed Recipe
   const [processedRecipes, setProcessedRecipes] = useState([])
@@ -32,21 +33,12 @@ const Testing = () => {
   const [quantityToPrepare, setQuantityToPrepare] = useState('')
   const [salePrice, setSalePrice] = useState('')
 
-  // Action 4: Remove Expired Stock
-  const [stocks, setStocks] = useState([])
-  const [selectedStock, setSelectedStock] = useState(null)
-  const [currentStockAmount, setCurrentStockAmount] = useState('')
-  const [wasteAmount, setWasteAmount] = useState('')
-  // State
-  const [cost, setCost] = useState('')
+  // General
+  const [message, setMessage] = useState('')
 
-  // Handler
-  const handleCostChange = (e) => {
-    setCost(e.target.value)
-  }
   // Fetch data on component mount
   useEffect(() => {
-    // Fetch raw ingredients for Action 1
+    // Fetch ingredients for Action 1
     api
       .get('/ingredients/')
       .then((response) => {
@@ -56,34 +48,15 @@ const Testing = () => {
         console.error('Error fetching ingredients:', error)
       })
 
-    // Fetch processed recipes for Action 2
+    // Fetch recipes for Actions 2 and 3
     api
       .get('/recipes/')
       .then((response) => {
         setProcessedRecipes(response.data.filter((recipe) => recipe.type === 'Processed'))
-      })
-      .catch((error) => {
-        console.error('Error fetching recipes:', error)
-      })
-
-    // Fetch full recipes for Action 3
-    api
-      .get('/recipes/')
-      .then((response) => {
         setFullRecipes(response.data.filter((recipe) => recipe.type === 'Full Recipe'))
       })
       .catch((error) => {
         console.error('Error fetching recipes:', error)
-      })
-
-    // Fetch stocks for Action 4
-    api
-      .get('/stocks/')
-      .then((response) => {
-        setStocks(response.data)
-      })
-      .catch((error) => {
-        console.error('Error fetching stocks:', error)
       })
   }, [])
 
@@ -91,10 +64,6 @@ const Testing = () => {
   const handleSelectIngredient = (ingredient) => {
     setSelectedIngredient(ingredient)
     setUnit(ingredient.unit)
-  }
-
-  const handleAmountChange = (e) => {
-    setAmount(e.target.value)
   }
 
   const handleAddStock = () => {
@@ -107,7 +76,7 @@ const Testing = () => {
     api
       .post('/stocks/', {
         name: `${selectedIngredient.name} Stock`,
-        expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
         cost: parseFloat(cost),
         amount: parseFloat(amount),
         unit: selectedIngredient.unit,
@@ -118,23 +87,16 @@ const Testing = () => {
         // Reset form
         setSelectedIngredient(null)
         setAmount('')
+        setCost('')
         setUnit('')
       })
       .catch((error) => {
         console.error('Error adding stock:', error)
-        setMessage('Error adding stock.')
+        setMessage('Error adding stock: ' + error.response?.data?.message || error.message)
       })
   }
 
   // Action 2: Execute Processed Recipe
-  const handleSelectProcessedRecipe = (recipe) => {
-    setSelectedProcessedRecipe(recipe)
-  }
-
-  const handleQuantityToProduceChange = (e) => {
-    setQuantityToProduce(e.target.value)
-  }
-
   const handleExecuteProcessedRecipe = () => {
     if (!selectedProcessedRecipe || !quantityToProduce) {
       setMessage('Please select a recipe and enter a quantity.')
@@ -145,8 +107,6 @@ const Testing = () => {
       .post('/execute_processed_recipe', {
         recipe_id: selectedProcessedRecipe.id,
         quantity: parseFloat(quantityToProduce),
-        expiry_days: 30, // Optional
-        processing_cost: 0, // Optional
       })
       .then((response) => {
         setMessage('Processed recipe executed successfully.')
@@ -156,23 +116,13 @@ const Testing = () => {
       })
       .catch((error) => {
         console.error('Error executing processed recipe:', error)
-        setMessage('Error executing processed recipe.')
+        setMessage(
+          'Error executing processed recipe: ' + error.response?.data?.message || error.message,
+        )
       })
   }
 
   // Action 3: Execute Full Recipe
-  const handleSelectFullRecipe = (recipe) => {
-    setSelectedFullRecipe(recipe)
-  }
-
-  const handleQuantityToPrepareChange = (e) => {
-    setQuantityToPrepare(e.target.value)
-  }
-
-  const handleSalePriceChange = (e) => {
-    setSalePrice(e.target.value)
-  }
-
   const handleExecuteFullRecipe = () => {
     if (!selectedFullRecipe || !quantityToPrepare || !salePrice) {
       setMessage('Please select a recipe, enter quantity and sale price.')
@@ -194,71 +144,14 @@ const Testing = () => {
       })
       .catch((error) => {
         console.error('Error executing full recipe:', error)
-        setMessage('Error executing full recipe.')
-      })
-  }
-
-  // Action 4: Remove Expired Stock
-  const handleSelectStock = (stock) => {
-    setSelectedStock(stock)
-    setCurrentStockAmount(stock.amount)
-  }
-
-  const handleWasteAmountChange = (e) => {
-    setWasteAmount(e.target.value)
-  }
-
-  const handleRemoveExpiredStock = () => {
-    if (!selectedStock || !wasteAmount) {
-      setMessage('Please select a stock and enter the amount to remove.')
-      return
-    }
-
-    // Create waste record
-    api
-      .post('/wastes/', {
-        stock_id: selectedStock.id,
-        waste_amount: parseFloat(wasteAmount),
-        unit: selectedStock.unit,
-        reason: 'Expired',
-        notes: 'Removed via testing page',
-      })
-      .then((response) => {
-        // Update stock amount
-        const newAmount = selectedStock.amount - parseFloat(wasteAmount)
-        api
-          .put(`/stocks/${selectedStock.id}`, {
-            amount: newAmount >= 0 ? newAmount : 0,
-          })
-          .then(() => {
-            setMessage('Expired stock removed and waste recorded successfully.')
-            // Reset form
-            setSelectedStock(null)
-            setCurrentStockAmount('')
-            setWasteAmount('')
-            // Refresh stocks
-            api
-              .get('/stocks/')
-              .then((response) => {
-                setStocks(response.data)
-              })
-              .catch((error) => {
-                console.error('Error fetching stocks:', error)
-              })
-          })
-          .catch((error) => {
-            console.error('Error updating stock amount:', error)
-            setMessage('Error updating stock amount.')
-          })
-      })
-      .catch((error) => {
-        console.error('Error recording waste:', error)
-        setMessage('Error recording waste.')
+        setMessage('Error executing full recipe: ' + error.response?.data?.message || error.message)
       })
   }
 
   return (
     <div style={{ padding: '20px' }}>
+      {message && <CAlert color="info">{message}</CAlert>}
+
       {/* Action 1: Add Stock */}
       <h2>Action 1: Add Stock</h2>
       <CRow className="align-items-center mb-4">
@@ -284,11 +177,16 @@ const Testing = () => {
             type="number"
             placeholder="Amount"
             value={amount}
-            onChange={handleAmountChange}
+            onChange={(e) => setAmount(e.target.value)}
           />
         </CCol>
         <CCol sm={2}>
-          <CFormInput type="number" placeholder="Cost" value={cost} onChange={handleCostChange} />
+          <CFormInput
+            type="number"
+            placeholder="Cost"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+          />
         </CCol>
         <CCol sm={2}>
           <CFormInput type="text" placeholder="Unit" value={unit} disabled />
@@ -310,7 +208,7 @@ const Testing = () => {
             </CDropdownToggle>
             <CDropdownMenu>
               {processedRecipes.map((recipe) => (
-                <CDropdownItem key={recipe.id} onClick={() => handleSelectProcessedRecipe(recipe)}>
+                <CDropdownItem key={recipe.id} onClick={() => setSelectedProcessedRecipe(recipe)}>
                   {recipe.name}
                 </CDropdownItem>
               ))}
@@ -322,7 +220,7 @@ const Testing = () => {
             type="number"
             placeholder="Quantity"
             value={quantityToProduce}
-            onChange={handleQuantityToProduceChange}
+            onChange={(e) => setQuantityToProduce(e.target.value)}
           />
         </CCol>
         <CCol sm={2}>
@@ -342,7 +240,7 @@ const Testing = () => {
             </CDropdownToggle>
             <CDropdownMenu>
               {fullRecipes.map((recipe) => (
-                <CDropdownItem key={recipe.id} onClick={() => handleSelectFullRecipe(recipe)}>
+                <CDropdownItem key={recipe.id} onClick={() => setSelectedFullRecipe(recipe)}>
                   {recipe.name}
                 </CDropdownItem>
               ))}
@@ -354,7 +252,7 @@ const Testing = () => {
             type="number"
             placeholder="Quantity"
             value={quantityToPrepare}
-            onChange={handleQuantityToPrepareChange}
+            onChange={(e) => setQuantityToPrepare(e.target.value)}
           />
         </CCol>
         <CCol sm={3}>
@@ -362,7 +260,7 @@ const Testing = () => {
             type="number"
             placeholder="Sale Price"
             value={salePrice}
-            onChange={handleSalePriceChange}
+            onChange={(e) => setSalePrice(e.target.value)}
           />
         </CCol>
         <CCol sm={3}>
@@ -371,57 +269,6 @@ const Testing = () => {
           </CButton>
         </CCol>
       </CRow>
-
-      {/* Action 4: Remove Expired Stock */}
-      <h2>Action 4: Remove Expired Stock</h2>
-      <CRow className="align-items-center mb-4">
-        <CCol sm={3}>
-          <CDropdown>
-            <CDropdownToggle color="secondary">
-              {selectedStock ? selectedStock.name : 'Select Stock'}
-            </CDropdownToggle>
-            <CDropdownMenu>
-              {stocks.map((stock) => (
-                <CDropdownItem key={stock.id} onClick={() => handleSelectStock(stock)}>
-                  {stock.name}
-                </CDropdownItem>
-              ))}
-            </CDropdownMenu>
-          </CDropdown>
-        </CCol>
-        <CCol sm={3}>
-          <CFormInput
-            type="text"
-            placeholder="Current Amount"
-            value={currentStockAmount}
-            disabled
-          />
-        </CCol>
-        <CCol sm={2}>
-          <CFormInput
-            type="number"
-            placeholder="Amount to Remove"
-            value={wasteAmount}
-            onChange={handleWasteAmountChange}
-          />
-        </CCol>
-        <CCol sm={2}>
-          <CFormInput
-            type="text"
-            placeholder="Unit"
-            value={selectedStock ? selectedStock.unit : ''}
-            disabled
-          />
-        </CCol>
-        <CCol sm={2}>
-          <CButton color="primary" onClick={handleRemoveExpiredStock}>
-            Submit
-          </CButton>
-        </CCol>
-      </CRow>
-
-      {/* Display message */}
-      {message && <p>{message}</p>}
     </div>
   )
 }
