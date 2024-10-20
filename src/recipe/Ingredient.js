@@ -2,12 +2,12 @@ import React from 'react'
 import { CListGroupItem, CBadge } from '@coreui/react'
 
 const Ingredient = ({ ingredient, badgeColor, badgeText, children }) => {
-  const isProcessed = ingredient.type === 'Processed Ingredient'
+  const isProcessed = ingredient.type === 'Processed'
 
   return (
     <CListGroupItem
-      as={isProcessed ? 'button' : 'div'}
-      action={isProcessed}
+      component={isProcessed ? 'button' : 'div'}
+      {...(isProcessed ? { action: true } : {})}
       className="ingredient-item"
       draggable // Enable drag-and-drop
     >

@@ -7,7 +7,7 @@ const IngredientList = ({ ingredients }) => {
   return (
     <CListGroup flush>
       {ingredients.map((ingredient, index) =>
-        ingredient.type === 'Raw Ingredient' ? (
+        ingredient.type === 'Raw' ? (
           <RawIngredient key={index} ingredient={ingredient} />
         ) : (
           <ProcessedIngredient key={index} ingredient={ingredient} />

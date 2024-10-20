@@ -8,7 +8,7 @@ const ProcessedIngredient = ({ ingredient }) => {
   const handleMouseEnter = () => {
     timerRef.current = setTimeout(() => {
       setShowPopup(true)
-    }, 1500) // 1.3 seconds delay
+    }, 1500) // 1.5 seconds delay
   }
 
   const handleMouseLeave = () => {
@@ -33,21 +33,21 @@ const ProcessedIngredient = ({ ingredient }) => {
               width: '250px',
             }}
           >
-            <h4 style={{ marginTop: 0 }}></h4>
+            <h4 style={{ marginTop: 0 }}>{ingredient.name}</h4>
             <p>
-              <strong>Type:</strong>{' '}
+              <strong>Type:</strong> {ingredient.type}
             </p>
             <p>
-              <strong>Description:</strong>{' '}
+              <strong>Description:</strong> {ingredient.description || 'N/A'}
             </p>
             <p>
-              <strong>Ingredients:</strong>
+              <strong>Ingredients:</strong> {ingredient.ingredients?.join(', ') || 'N/A'}
             </p>
             <p>
-              <strong>Allergens:</strong>{' '}
+              <strong>Allergens:</strong> {ingredient.allergens?.join(', ') || 'None'}
             </p>
             <p>
-              <strong>Shelf Life:</strong>{' '}
+              <strong>Shelf Life:</strong> {ingredient.shelfLife || 'N/A'}
             </p>
           </div>
         )}
