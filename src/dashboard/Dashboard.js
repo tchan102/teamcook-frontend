@@ -1,11 +1,37 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CWidgetStatsA, CWidgetStatsD, CRow, CCol, CButton } from '@coreui/react'
 import { CChartLine } from '@coreui/react-chartjs'
 import CIcon from '@coreui/icons-react'
 import { cilTruck } from '@coreui/icons'
+import api from '../api' // Import the axios instance
 
 const Dashboard = () => {
+  const [stockCounts, setStockCounts] = useState({ raw_count: 0, processed_count: 0 })
+  const [stockHistory, setStockHistory] = useState({ dates: [], raw_data: [], processed_data: [] })
+
+  useEffect(() => {
+    // Fetch stock counts
+    api
+      .get('/stats/stock_counts')
+      .then((response) => {
+        setStockCounts(response.data)
+      })
+      .catch((error) => {
+        console.error('Error fetching stock counts:', error)
+      })
+
+    // Fetch stock history
+    api
+      .get('/stats/stock_history')
+      .then((response) => {
+        setStockHistory(response.data)
+      })
+      .catch((error) => {
+        console.error('Error fetching stock history:', error)
+      })
+  }, [])
+
   return (
     <>
       <h1>Welcome to Papa John</h1>
@@ -14,19 +40,20 @@ const Dashboard = () => {
           <Link to="/inventory" style={{ textDecoration: 'none' }}>
             <CWidgetStatsD
               className="mb-3"
-              icon={<CIcon className="my-4 text-white" href="" icon={cilTruck} height={52} />}
+              icon={<CIcon className="my-4 text-white" icon={cilTruck} height={52} />}
               chart={
                 <CChartLine
                   className="position-absolute w-100 h-100"
                   data={{
-                    labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                    labels: stockHistory.dates,
                     datasets: [
                       {
+                        label: 'Raw Ingredients',
                         backgroundColor: 'rgba(255,255,255,.1)',
                         borderColor: 'rgba(255,255,255,.55)',
                         pointHoverBackgroundColor: '#fff',
                         borderWidth: 2,
-                        data: [65, 59, 84, 84, 51, 55, 40],
+                        data: stockHistory.raw_data,
                         fill: true,
                       },
                     ],
@@ -46,7 +73,10 @@ const Dashboard = () => {
                     maintainAspectRatio: false,
                     plugins: {
                       legend: {
-                        display: false,
+                        display: true,
+                        labels: {
+                          color: '#fff',
+                        },
                       },
                     },
                     scales: {
@@ -62,8 +92,8 @@ const Dashboard = () => {
               }
               style={{ '--cui-card-cap-bg': '#3b5998' }}
               values={[
-                { title: 'Raw Ingredient', value: '123' },
-                { title: 'Processed Ingredient', value: '64' },
+                { title: 'Raw Ingredients', value: stockCounts.raw_count },
+                { title: 'Processed Ingredients', value: stockCounts.processed_count },
               ]}
             />
           </Link>
