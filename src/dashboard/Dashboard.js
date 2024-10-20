@@ -115,7 +115,7 @@ const Dashboard = () => {
             color="primary"
             value={<>Recipe Book</>}
             action={
-              <Link to="/recipebook" style={{ textDecoration: 'none' }}>
+              <Link to="/recipe-book" style={{ textDecoration: 'none' }}>
                 <CButton color="light">Go</CButton>
               </Link>
             }

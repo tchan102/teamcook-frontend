@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   CCard,
   CCardHeader,
@@ -16,21 +16,102 @@ import {
   CFormInput,
   CFormLabel,
 } from '@coreui/react'
+import api from '../api'
 
 const Calendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [view, setView] = useState('month') // 'month' or 'week'
-  const [events, setEvents] = useState({})
+  const [events, setEvents] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [newEvent, setNewEvent] = useState('')
+
+  useEffect(() => {
+    fetchEvents()
+  }, [currentDate, view])
+
+  const fetchEvents = async () => {
+    try {
+      let startDate, endDate
+      if (view === 'month') {
+        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      } else {
+        startDate = getWeekStart(currentDate)
+        endDate = new Date(startDate)
+        endDate.setDate(endDate.getDate() + 6)
+      }
+      const response = await api.get('/events/', {
+        params: {
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+        },
+      })
+      setEvents(response.data)
+    } catch (error) {
+      console.error('Error fetching events:', error)
+    }
+  }
 
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   }
 
-  const formatDateKey = (date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const getWeekStart = (date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day
+    return new Date(d.setDate(diff))
+  }
+
+  const renderHeader = () => {
+    if (view === 'month') {
+      return (
+        <CRow className="align-items-center">
+          <CCol xs={2}>
+            <CButton color="primary" onClick={prevMonth}>
+              Previous
+            </CButton>
+          </CCol>
+          <CCol xs={8} className="text-center">
+            <h4>{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4>
+          </CCol>
+          <CCol xs={2} className="text-end">
+            <CButton color="primary" onClick={nextMonth}>
+              Next
+            </CButton>
+          </CCol>
+        </CRow>
+      )
+    } else {
+      const weekStart = getWeekStart(currentDate)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+      return (
+        <CRow className="align-items-center">
+          <CCol xs={2}>
+            <CButton color="primary" onClick={prevWeek}>
+              Previous
+            </CButton>
+          </CCol>
+          <CCol xs={8} className="text-center">
+            <h4>
+              {weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} -
+              {weekEnd.toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </h4>
+          </CCol>
+          <CCol xs={2} className="text-end">
+            <CButton color="primary" onClick={nextWeek}>
+              Next
+            </CButton>
+          </CCol>
+        </CRow>
+      )
+    }
   }
 
   const onDateClick = (day) => {
@@ -50,38 +131,34 @@ const Calendar = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
   }
 
-  const onAddEvent = () => {
-    if (newEvent.trim() !== '') {
-      setEvents((prev) => ({
-        ...prev,
-        [formatDateKey(selectedDate)]: [
-          ...(prev[formatDateKey(selectedDate)] || []),
-          newEvent.trim(),
-        ],
-      }))
-      setNewEvent('')
-      setShowModal(false)
-    }
+  const nextWeek = () => {
+    const nextWeek = new Date(currentDate)
+    nextWeek.setDate(currentDate.getDate() + 7)
+    setCurrentDate(nextWeek)
   }
 
-  const renderHeader = () => {
-    return (
-      <CRow className="align-items-center">
-        <CCol xs={2}>
-          <CButton color="primary" onClick={prevMonth}>
-            Previous
-          </CButton>
-        </CCol>
-        <CCol xs={8} className="text-center">
-          <h4>{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4>
-        </CCol>
-        <CCol xs={2} className="text-end">
-          <CButton color="primary" onClick={nextMonth}>
-            Next
-          </CButton>
-        </CCol>
-      </CRow>
-    )
+  const prevWeek = () => {
+    const prevWeek = new Date(currentDate)
+    prevWeek.setDate(currentDate.getDate() - 7)
+    setCurrentDate(prevWeek)
+  }
+
+  const onAddEvent = async () => {
+    if (newEvent.trim() !== '') {
+      try {
+        const eventData = {
+          name: newEvent.trim(),
+          time: selectedDate.toISOString(),
+          // You might want to add created_by_id and restaurant_id here
+        }
+        await api.post('/events/', eventData)
+        await fetchEvents() // Refresh events after adding a new one
+        setNewEvent('')
+        setShowModal(false)
+      } catch (error) {
+        console.error('Error adding event:', error)
+      }
+    }
   }
 
   const renderDays = () => {
@@ -95,6 +172,17 @@ const Calendar = () => {
         ))}
       </CRow>
     )
+  }
+
+  const getEventsForDate = (date) => {
+    return events.filter((event) => {
+      const eventDate = new Date(event.time)
+      return (
+        eventDate.getFullYear() === date.getFullYear() &&
+        eventDate.getMonth() === date.getMonth() &&
+        eventDate.getDate() === date.getDate()
+      )
+    })
   }
 
   const renderCells = () => {
@@ -113,6 +201,7 @@ const Calendar = () => {
       for (let i = 0; i < 7; i++) {
         const cloneDay = new Date(day)
         const formattedDate = day.getDate()
+        const dateEvents = getEventsForDate(day)
         days.push(
           <CCol
             key={day}
@@ -127,11 +216,11 @@ const Calendar = () => {
             onDoubleClick={() => onDateDoubleClick(cloneDay)}
           >
             <div>{formattedDate}</div>
-            {events[formatDateKey(day)] && (
+            {dateEvents.length > 0 && (
               <div className="small mt-1">
-                {events[formatDateKey(day)].map((event, index) => (
+                {dateEvents.map((event, index) => (
                   <div key={index} className="text-truncate">
-                    {event}
+                    {event.name}
                   </div>
                 ))}
               </div>
@@ -151,13 +240,13 @@ const Calendar = () => {
   }
 
   const renderWeekView = () => {
-    const weekStart = new Date(selectedDate)
-    weekStart.setDate(selectedDate.getDate() - selectedDate.getDay())
+    const weekStart = getWeekStart(currentDate)
     const days = []
 
     for (let i = 0; i < 7; i++) {
       const cloneDay = new Date(weekStart)
       cloneDay.setDate(weekStart.getDate() + i)
+      const dateEvents = getEventsForDate(cloneDay)
       days.push(
         <CCol
           key={i}
@@ -168,11 +257,11 @@ const Calendar = () => {
           onDoubleClick={() => onDateDoubleClick(cloneDay)}
         >
           <div>{cloneDay.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}</div>
-          {events[formatDateKey(cloneDay)] && (
+          {dateEvents.length > 0 && (
             <div className="small mt-1">
-              {events[formatDateKey(cloneDay)].map((event, index) => (
+              {dateEvents.map((event, index) => (
                 <div key={index} className="text-truncate">
-                  {event}
+                  {event.name}
                 </div>
               ))}
             </div>
