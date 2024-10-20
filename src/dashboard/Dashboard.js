@@ -56,6 +56,15 @@ const Dashboard = () => {
                         data: stockHistory.raw_data,
                         fill: true,
                       },
+                      {
+                        label: 'Processed Ingredients',
+                        backgroundColor: 'rgba(255,255,255,.7)',
+                        borderColor: 'rgba(255,255,255,.55)',
+                        pointHoverBackgroundColor: '#fff',
+                        borderWidth: 2,
+                        data: stockHistory.processed_data,
+                        fill: true,
+                      },
                     ],
                   }}
                   options={{
